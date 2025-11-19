@@ -21,6 +21,7 @@ The app allows users to:
 - [Dependencies](#dependencies)
 - [AI Models](#AI-Models)
 
+
 ---
 
 ## Prerequisites
@@ -171,6 +172,7 @@ App.js
 - **@react-native-community/netinfo** — detect internet connection.
 - **React Native** — core framework.
 
+---
 
 ## AI Models
 
@@ -178,7 +180,8 @@ App.js
 
 - **Model:** [tabularisai/multilingual-sentiment-analysis](https://router.huggingface.co/hf-inference/models/tabularisai/multilingual-sentiment-analysis)
 - **API:**  
-  const response = await axios.post(
+    ```
+    const response = await axios.post(
       https://router.huggingface.co/hf-inference/models/tabularisai/multilingual-sentiment-analysis,
       { inputs: userText },
       {
@@ -188,6 +191,8 @@ App.js
         },
       },
     );
+    ```
+
 - **Purpose:** Detects the sentiment of the user's daily message (positive, neutral, negative) in multiple languages.
 - **Usage in App:**
   - When a user submits a daily entry, the message is sent to this model.
@@ -200,7 +205,8 @@ App.js
 
 - **Model:** [deepseek-ai/DeepSeek-R1:novita](https://router.huggingface.co/v1/chat/completions)
 - **API:**  
-  const response = await axios.post(
+    ```
+    const response = await axios.post(
     'https://router.huggingface.co/v1/chat/completions',
     {
       model: 'deepseek-ai/DeepSeek-R1:novita',
@@ -217,7 +223,8 @@ App.js
         'Content-Type': 'application/json',
       },
     },
-  );
+    );
+    ```
 - **Purpose:** Generates summaries and suggestions based on the user’s message.
 - **Usage in App:**
   - After sentiment analysis, the entry message is sent to this chat-completion model.
