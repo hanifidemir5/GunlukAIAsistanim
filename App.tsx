@@ -16,6 +16,10 @@ import {
 } from 'react-native-safe-area-context';
 import { Provider } from 'react-redux';
 import { store } from './src/redux/store';
+import {
+  MD3LightTheme as DefaultTheme,
+  PaperProvider,
+} from 'react-native-paper';
 
 const Stack = createNativeStackNavigator();
 
@@ -23,12 +27,14 @@ function App() {
   return (
     <Provider store={store}>
       <SafeAreaProvider>
-        <NavigationContainer>
-          <Stack.Navigator initialRouteName="Index">
-            <Stack.Screen name="Index" component={IndexPage} />
-            <Stack.Screen name="WeeklySummary" component={WeeklySummary} />
-          </Stack.Navigator>
-        </NavigationContainer>
+        <PaperProvider>
+          <NavigationContainer>
+            <Stack.Navigator initialRouteName="Index">
+              <Stack.Screen name="Index" component={IndexPage} />
+              <Stack.Screen name="WeeklySummary" component={WeeklySummary} />
+            </Stack.Navigator>
+          </NavigationContainer>
+        </PaperProvider>
       </SafeAreaProvider>
     </Provider>
   );
