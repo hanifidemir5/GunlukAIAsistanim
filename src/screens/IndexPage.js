@@ -6,101 +6,92 @@ import {
   Button,
   StyleSheet,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
-import { analyzeSentiment } from '../helpers/AnalyzeText';
-import { getSentimentLabel } from '../helpers/GetSentimentLabel';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useDispatch, useSelector } from 'react-redux';
-import {
-  entries,
-  addSentiment,
-  setSentiments,
-  saveToAsyncStorage,
-} from '../redux/SentimentSlice';
+import { setSentiments } from '../redux/SentimentSlice';
+import { generateResponsePipeline } from '../helpers/GenerateResponsePipeline';
 
 const IndexPage = ({ navigation }) => {
-  // <-- receive navigation prop
   const [dailyMessage, setDailyMessage] = useState('');
+  const [dailyEntry, setDailyEntry] = useState(null);
+  const [loading, setLoading] = useState(false); // <-- loading state
   const dispatch = useDispatch();
   const entries = useSelector(state => state.sentiments.entries);
-
-  // Load saved entries
-  useEffect(() => {
-    const loadEntries = async () => {
-      try {
-        const stored = await AsyncStorage.getItem('entries');
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          parsed.sort((a, b) => b.id - a.id);
-          dispatch(setSentiments(parsed));
-        }
-      } catch (error) {
-        console.error('Error loading entries', error);
-      }
-    };
-    loadEntries();
-  }, []);
 
   async function handleAddEntry() {
     if (!dailyMessage.trim()) return;
 
     try {
-      const apiResponse = await analyzeSentiment(dailyMessage);
-      const { sentiment, color } = getSentimentLabel(apiResponse);
+      setLoading(true); // <-- start loading
+
+      const prosessedResponse = await generateResponsePipeline(dailyMessage);
 
       const newEntry = {
         id: Date.now(),
         message: dailyMessage,
-        sentiment,
-        color,
+        sentiment: prosessedResponse.sentiment,
+        color: prosessedResponse.sentimentColor,
+        summary: prosessedResponse.summary,
+        suggestion: prosessedResponse.suggestion,
       };
 
-      // Build updated array
-      const updatedEntries = [...entries, newEntry];
+      const stored = await AsyncStorage.getItem('entries');
+      let existing = stored ? JSON.parse(stored) : [];
 
-      // Update Redux state
+      const updatedEntries = [newEntry, ...existing];
+
+      await AsyncStorage.setItem('entries', JSON.stringify(updatedEntries));
       dispatch(setSentiments(updatedEntries));
 
-      // Persist to AsyncStorage
-      await AsyncStorage.setItem('entries', JSON.stringify(updatedEntries));
-
+      setDailyEntry(newEntry);
       setDailyMessage('');
     } catch (error) {
       console.error('Sentiment error:', error);
+    } finally {
+      setLoading(false); // <-- stop loading
     }
   }
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>AI Günlük Asistanım</Text>
+
       <TextInput
         style={styles.input}
         placeholder="Bugün nasıl hissediyorsun?"
         value={dailyMessage}
         onChangeText={setDailyMessage}
       />
-      <Button title="Gönder" onPress={handleAddEntry} />
+
+      {loading ? (
+        <ActivityIndicator
+          size="large"
+          color="#007AFF"
+          style={{ marginTop: 10 }}
+        />
+      ) : (
+        <Button title="Gönder" onPress={handleAddEntry} />
+      )}
 
       <View style={{ marginTop: 20 }}>
         <Button
           title="Haftalık Özet"
-          onPress={() => navigation.navigate('WeeklySummary')} // <-- navigate
+          onPress={() => navigation.navigate('WeeklySummary')}
         />
       </View>
 
-      <View style={styles.entriesContainer}>
-        {entries.map(entry => (
+      {dailyEntry && (
+        <View style={styles.entriesContainer}>
           <View
-            key={entry.id}
-            style={[styles.entryCard, { borderLeftColor: entry.color }]}
+            style={[styles.entryCard, { borderLeftColor: dailyEntry.color }]}
           >
-            <Text>{entry.message}</Text>
-            <Text style={{ color: entry.color, fontWeight: 'bold' }}>
-              {entry.sentiment}
-            </Text>
+            <Text>{dailyEntry.message}</Text>
+            <Text style={{ fontWeight: 'bold' }}>{dailyEntry.sentiment}</Text>
           </View>
-        ))}
-      </View>
+        </View>
+      )}
     </ScrollView>
   );
 };
