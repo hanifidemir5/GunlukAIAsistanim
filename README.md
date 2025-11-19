@@ -178,7 +178,7 @@ App.js
 
 ### 1. Multilingual Sentiment Analysis
 
-- **Model:** [tabularisai/multilingual-sentiment-analysis](https://router.huggingface.co/hf-inference/models/tabularisai/multilingual-sentiment-analysis)
+- **Model:** [tabularisai/multilingual-sentiment-analysis](https://huggingface.co/tabularisai/multilingual-sentiment-analysis)
 - **API:**  
     ```
     const response = await axios.post(
@@ -203,7 +203,7 @@ App.js
 
 ### 2. DeepSeek-R1:novita (Chat/Response Generation)
 
-- **Model:** [deepseek-ai/DeepSeek-R1:novita](https://router.huggingface.co/v1/chat/completions)
+- **Model:** [deepseek-ai/DeepSeek-R1:novita](https://huggingface.co/deepseek-ai/DeepSeek-R1)
 - **API:**  
     ```
     const response = await axios.post(
