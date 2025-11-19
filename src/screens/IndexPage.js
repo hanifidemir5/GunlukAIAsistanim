@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useDispatch, useSelector } from 'react-redux';
-import { setSentiments } from '../redux/SentimentSlice';
+import { saveToAsyncStorage } from '../redux/SentimentSlice';
 import { generateResponsePipeline } from '../helpers/GenerateResponsePipeline';
 import {
   TextInput as PaperInput,
@@ -18,11 +18,25 @@ import { fetchWithTimeout } from '../helpers/FetchWithTimeOut';
 
 const IndexPage = ({ navigation }) => {
   const [dailyMessage, setDailyMessage] = useState('');
-  const [dailyEntry, setDailyEntry] = useState(null);
   const [loading, setLoading] = useState(false);
   const dispatch = useDispatch();
-  const entries = useSelector(state => state.sentiments.entries);
-  const latestEntry = useSelector(state => state.sentiments.latestEntry);
+  const [latestEntry, setLatestEntry] = useState(null);
+  const [alreadyEnteredToday, setAlreadyEnteredToday] = useState(false);
+  const reduxLatestEntry = useSelector(state => state.sentiments.latestEntry);
+
+  useEffect(() => {
+    if (!reduxLatestEntry) {
+      setAlreadyEnteredToday(false);
+      return;
+    }
+
+    setLatestEntry(reduxLatestEntry);
+
+    const today = new Date().toISOString().split('T')[0];
+    const entryDate = new Date(reduxLatestEntry.id).toISOString().split('T')[0];
+
+    setAlreadyEnteredToday(entryDate === today);
+  }, [reduxLatestEntry]);
 
   async function handleAddEntry() {
     if (!dailyMessage.trim()) {
@@ -61,10 +75,9 @@ const IndexPage = ({ navigation }) => {
 
       const updatedEntries = [newEntry, ...existing];
 
-      await AsyncStorage.setItem('entries', JSON.stringify(updatedEntries));
-      dispatch(setSentiments(updatedEntries));
+      dispatch(saveToAsyncStorage(updatedEntries, newEntry));
 
-      setDailyEntry(newEntry);
+      setLatestEntry(newEntry);
       setDailyMessage('');
     } catch (error) {
       if (error.message === 'timeout') {
@@ -80,11 +93,12 @@ const IndexPage = ({ navigation }) => {
       setLoading(false);
     }
   }
+
   return (
     <ScrollView
       contentContainerStyle={[
         styles.container,
-        dailyEntry?.color ? { backgroundColor: latestEntry.color } : {},
+        latestEntry?.color ? { backgroundColor: latestEntry?.color } : {},
       ]}
     >
       <Text style={styles.title}>AI Günlük Asistanım</Text>
@@ -114,7 +128,7 @@ const IndexPage = ({ navigation }) => {
           color="#007AFF"
           style={{ marginTop: 10 }}
         />
-      ) : (
+      ) : !alreadyEnteredToday ? (
         <PaperButton
           mode="contained"
           buttonColor="#007AFF"
@@ -122,24 +136,35 @@ const IndexPage = ({ navigation }) => {
         >
           Gönder
         </PaperButton>
+      ) : (
+        <PaperButton mode="contained" contentStyle={{ opacity: 0.5 }}>
+          Bu günlük giriş hakkını kullandın
+        </PaperButton>
       )}
 
-      {dailyEntry && (
+      {latestEntry && (
         <View style={styles.entriesContainer}>
           <Card
             style={{
               marginBottom: 10,
               borderLeftWidth: 6,
-              borderLeftColor: dailyEntry.color,
+              borderLeftColor: latestEntry.color,
             }}
           >
             <Card.Content>
-              <Title>Özet</Title>
-              <Paragraph>{dailyEntry.summary}</Paragraph>
-              <Title>Öneri</Title>
-              <Paragraph>{dailyEntry.suggestion}</Paragraph>
-              <Title style={{ color: dailyEntry.color }}>
-                {dailyEntry.sentiment}
+              <Title style={[{ fontWeight: 'bold' }]}>
+                {new Date(latestEntry.id).toLocaleString('tr-TR')}
+              </Title>
+              <Title style={[{ fontWeight: 'bold' }]}>Günlük mesaj </Title>
+              <Text style={[{ fontWeight: 'normal' }]}>
+                {latestEntry.message}
+              </Text>
+              <Title style={[{ fontWeight: 'bold' }]}>Özet</Title>
+              <Paragraph>{latestEntry.summary}</Paragraph>
+              <Title style={[{ fontWeight: 'bold' }]}>Öneri</Title>
+              <Paragraph>{latestEntry.suggestion}</Paragraph>
+              <Title style={{ color: latestEntry.color }}>
+                {latestEntry.sentiment}
               </Title>
             </Card.Content>
           </Card>

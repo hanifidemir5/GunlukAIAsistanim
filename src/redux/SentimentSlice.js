@@ -15,11 +15,13 @@ const SentimentsSlice = createSlice({
       state.entries = action.payload;
       state.latestEntry = action.payload[0];
     },
+    setLatestEntry(state, action) {
+      state.latestEntry = action.payload;
+    },
     addSentiment(state, action) {
       state.entries.push(action.payload);
     },
     removeSentiment(state, action) {
-      // action.payload = id of the entry to remove
       state.entries = state.entries.filter(e => e.id !== action.payload);
     },
     clearSentiments(state) {
@@ -28,16 +30,36 @@ const SentimentsSlice = createSlice({
   },
 });
 
-export const { setSentiments, addSentiment, removeSentiment, clearSentiments } =
-  SentimentsSlice.actions;
+export const {
+  setSentiments,
+  addSentiment,
+  removeSentiment,
+  clearSentiments,
+  setLatestEntry,
+} = SentimentsSlice.actions;
 
-export const saveToAsyncStorage = entries => async dispatch => {
+export const saveToAsyncStorage = (entries, latestEntry) => async dispatch => {
   try {
     await AsyncStorage.setItem('entries', JSON.stringify(entries));
+    await AsyncStorage.setItem('latestEntry', JSON.stringify(latestEntry));
     dispatch(setSentiments(entries));
   } catch (error) {
     console.error('Error saving to AsyncStorage', error);
   }
 };
+
+export const removeEntryAndUpdateLatest =
+  entryId => async (dispatch, getState) => {
+    dispatch(removeSentiment(entryId));
+
+    const { entries } = getState().sentiments;
+
+    const sorted = [...entries].sort((a, b) => b.id - a.id);
+
+    const newLatest = sorted[0] || null;
+
+    await AsyncStorage.setItem('entries', JSON.stringify(entries));
+    await AsyncStorage.setItem('latestEntry', JSON.stringify(newLatest));
+  };
 
 export default SentimentsSlice.reducer;

@@ -1,40 +1,51 @@
 // src/screens/WeeklySummary.js
-import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Button } from 'react-native';
+import React, { useCallback, useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Button,
+  Alert,
+} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useDispatch, useSelector } from 'react-redux';
 import { useFocusEffect } from '@react-navigation/native';
-import { removeSentiment } from '../redux/SentimentSlice';
+import {
+  removeSentiment,
+  setLatestEntry,
+  clearSentiments,
+} from '../redux/SentimentSlice';
 
 const WeeklySummary = () => {
   const [entries, setEntries] = useState([]);
+  const [latestEntry, setLocalLatestEntry] = useState(null);
   const dispatch = useDispatch();
-  const latestEntry = useSelector(state => state.sentiments.latestEntry);
+
+  const loadEntriesFromStorage = async () => {
+    const storedEntries = await AsyncStorage.getItem('entries');
+    if (storedEntries) {
+      const parsed = JSON.parse(storedEntries);
+      parsed.sort((a, b) => b.id - a.id);
+      setEntries(parsed);
+
+      // Update latestEntry
+      const storedLatestEntry = await AsyncStorage.getItem('latestEntry');
+      setLocalLatestEntry(
+        storedLatestEntry ? JSON.parse(storedLatestEntry) : null,
+      );
+    }
+  };
+
+  useEffect(() => {
+    loadEntriesFromStorage();
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
-      const loadEntries = async () => {
-        const stored = await AsyncStorage.getItem('entries');
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          parsed.sort((a, b) => b.id - a.id);
-          setEntries(parsed);
-        }
-      };
-
-      loadEntries();
+      loadEntriesFromStorage();
     }, []),
   );
-
-  const handleClearEntries = async () => {
-    try {
-      await AsyncStorage.removeItem('entries');
-      dispatch(clearSentiments());
-      setEntries([]); // clear local state too
-    } catch (error) {
-      console.error('Error clearing entries', error);
-    }
-  };
 
   const handleClearDailyEntry = async id => {
     try {
@@ -44,12 +55,39 @@ const WeeklySummary = () => {
       const updatedEntries = existingEntries.filter(entry => entry.id !== id);
 
       await AsyncStorage.setItem('entries', JSON.stringify(updatedEntries));
-
       dispatch(removeSentiment(id));
 
+      // Update latestEntry
+      const newLatestEntry =
+        updatedEntries.length > 0 ? updatedEntries[0] : null;
+      if (newLatestEntry) {
+        await AsyncStorage.setItem(
+          'latestEntry',
+          JSON.stringify(newLatestEntry),
+        );
+      } else {
+        await AsyncStorage.removeItem('latestEntry');
+      }
+
+      dispatch(setLatestEntry(newLatestEntry));
+      setLocalLatestEntry(newLatestEntry);
       setEntries(updatedEntries);
     } catch (error) {
       console.error('Error removing entry', error);
+      Alert.alert('Hata', 'Günlük silinirken bir hata oluştu.');
+    }
+  };
+
+  const handleClearAllEntries = async () => {
+    try {
+      await AsyncStorage.removeItem('entries');
+      await AsyncStorage.removeItem('latestEntry');
+      dispatch(clearSentiments());
+      setEntries([]);
+      setLocalLatestEntry(null);
+    } catch (error) {
+      console.error('Error clearing entries', error);
+      Alert.alert('Hata', 'Tüm geçmiş silinirken bir hata oluştu.');
     }
   };
 
@@ -71,6 +109,9 @@ const WeeklySummary = () => {
           key={entry.id}
           style={[styles.entryCard, { borderLeftColor: entry.color }]}
         >
+          <Text style={{ fontWeight: 'bold' }}>
+            {new Date(entry.id).toLocaleString('tr-TR')}
+          </Text>
           <Text style={styles.cardTitle}>
             Günlük mesaj:{' '}
             <Text style={styles.messageText}>{entry.message}</Text>
@@ -88,7 +129,7 @@ const WeeklySummary = () => {
             title="Günlüğü Temizle"
             onPress={() => handleClearDailyEntry(entry.id)}
             color="red"
-          ></Button>
+          />
         </View>
       ))}
 
@@ -96,7 +137,7 @@ const WeeklySummary = () => {
         <View style={{ marginTop: 20 }}>
           <Button
             title="Tüm Geçmişi Temizle"
-            onPress={handleClearEntries}
+            onPress={handleClearAllEntries}
             color="red"
           />
         </View>
