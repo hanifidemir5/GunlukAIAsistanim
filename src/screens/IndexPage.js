@@ -12,6 +12,9 @@ import {
   Paragraph,
   ActivityIndicator as PaperActivityIndicator,
 } from 'react-native-paper';
+import NetInfo from '@react-native-community/netinfo';
+import { Alert } from 'react-native';
+import { fetchWithTimeout } from '../helpers/FetchWithTimeOut';
 
 const IndexPage = ({ navigation }) => {
   const [dailyMessage, setDailyMessage] = useState('');
@@ -22,12 +25,27 @@ const IndexPage = ({ navigation }) => {
   const latestEntry = useSelector(state => state.sentiments.latestEntry);
 
   async function handleAddEntry() {
-    if (!dailyMessage.trim()) return;
+    if (!dailyMessage.trim()) {
+      Alert.alert('Alan boş bırakılamaz', 'Lütfen tekrar deneyiniz.');
+      return;
+    }
+
+    const netState = await NetInfo.fetch();
+    if (!netState.isConnected) {
+      Alert.alert(
+        'Bağlantı Yok',
+        'İnternet bağlantısı yok. Daha sonra tekrar deneyiniz.',
+      );
+      return;
+    }
 
     try {
       setLoading(true);
 
-      const prosessedResponse = await generateResponsePipeline(dailyMessage);
+      const prosessedResponse = await fetchWithTimeout(
+        () => generateResponsePipeline(dailyMessage),
+        60000,
+      );
 
       const newEntry = {
         id: Date.now(),
@@ -49,7 +67,15 @@ const IndexPage = ({ navigation }) => {
       setDailyEntry(newEntry);
       setDailyMessage('');
     } catch (error) {
-      console.error('Sentiment error:', error);
+      if (error.message === 'timeout') {
+        Alert.alert(
+          'Zaman Aşımı',
+          'İstek çok uzun sürdü. Lütfen internet bağlantınızı kontrol edin ve tekrar deneyin.',
+        );
+      } else {
+        console.log(error);
+        Alert.alert('Hata', 'Bir hata oluştu. Lütfen tekrar deneyin.');
+      }
     } finally {
       setLoading(false);
     }
