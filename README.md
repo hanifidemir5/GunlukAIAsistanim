@@ -20,7 +20,7 @@ The app allows users to:
 - [Offline Support](#offline-support)
 - [Dependencies](#dependencies)
 - [AI Models](#AI-Models)
-
+- [Integration Flow](#integration-flow)
 
 ---
 
@@ -232,6 +232,14 @@ App.js
     - A **summary** of the user's message.
     - Personalized **advice or suggestions**.
   - These outputs are displayed in the daily entry card alongside the sentiment information.
+
+## AI Assistance During Development
+
+- AI tools were used to assist in **writing and structuring the README**, planning features, and generating sample code snippets.  
+- Guidance from AI helped with **API integrations**, **Hugging Face model usage**, and **React Native setup**.  
+- AI support also contributed to **debugging**, **optimizing state management with Redux**, and **improving overall app structure**.  
+- This assistance helped accelerate development while ensuring best practices in **React Native**, **Redux**, and **AsyncStorage** usage.
+
 
 ### Integration Flow
 
