@@ -1,30 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  Button,
-  StyleSheet,
-  ScrollView,
-  ActivityIndicator,
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useDispatch, useSelector } from 'react-redux';
 import { setSentiments } from '../redux/SentimentSlice';
 import { generateResponsePipeline } from '../helpers/GenerateResponsePipeline';
+import {
+  TextInput as PaperInput,
+  Button as PaperButton,
+  Card,
+  Title,
+  Paragraph,
+  ActivityIndicator as PaperActivityIndicator,
+} from 'react-native-paper';
 
 const IndexPage = ({ navigation }) => {
   const [dailyMessage, setDailyMessage] = useState('');
   const [dailyEntry, setDailyEntry] = useState(null);
-  const [loading, setLoading] = useState(false); // <-- loading state
+  const [loading, setLoading] = useState(false);
   const dispatch = useDispatch();
   const entries = useSelector(state => state.sentiments.entries);
+  const latestEntry = useSelector(state => state.sentiments.latestEntry);
 
   async function handleAddEntry() {
     if (!dailyMessage.trim()) return;
 
     try {
-      setLoading(true); // <-- start loading
+      setLoading(true);
 
       const prosessedResponse = await generateResponsePipeline(dailyMessage);
 
@@ -50,46 +51,72 @@ const IndexPage = ({ navigation }) => {
     } catch (error) {
       console.error('Sentiment error:', error);
     } finally {
-      setLoading(false); // <-- stop loading
+      setLoading(false);
     }
   }
-
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView
+      contentContainerStyle={[
+        styles.container,
+        dailyEntry?.color ? { backgroundColor: latestEntry.color } : {},
+      ]}
+    >
       <Text style={styles.title}>AI Günlük Asistanım</Text>
-
-      <TextInput
-        style={styles.input}
-        placeholder="Bugün nasıl hissediyorsun?"
+      <View style={styles.weaklySummaryButtonContainer}>
+        <PaperButton
+          mode="contained"
+          buttonColor="#FFC107"
+          textColor="#000"
+          onPress={() => navigation.navigate('WeeklySummary')}
+        >
+          Haftalık Özet
+        </PaperButton>
+      </View>
+      <PaperInput
+        label="Bugün nasıl hissediyorsun?"
         value={dailyMessage}
         onChangeText={setDailyMessage}
+        style={{
+          marginBottom: 10,
+        }}
       />
 
       {loading ? (
-        <ActivityIndicator
+        <PaperActivityIndicator
+          animating={true}
           size="large"
           color="#007AFF"
           style={{ marginTop: 10 }}
         />
       ) : (
-        <Button title="Gönder" onPress={handleAddEntry} />
+        <PaperButton
+          mode="contained"
+          buttonColor="#007AFF"
+          onPress={handleAddEntry}
+        >
+          Gönder
+        </PaperButton>
       )}
-
-      <View style={{ marginTop: 20 }}>
-        <Button
-          title="Haftalık Özet"
-          onPress={() => navigation.navigate('WeeklySummary')}
-        />
-      </View>
 
       {dailyEntry && (
         <View style={styles.entriesContainer}>
-          <View
-            style={[styles.entryCard, { borderLeftColor: dailyEntry.color }]}
+          <Card
+            style={{
+              marginBottom: 10,
+              borderLeftWidth: 6,
+              borderLeftColor: dailyEntry.color,
+            }}
           >
-            <Text>{dailyEntry.message}</Text>
-            <Text style={{ fontWeight: 'bold' }}>{dailyEntry.sentiment}</Text>
-          </View>
+            <Card.Content>
+              <Title>Özet</Title>
+              <Paragraph>{dailyEntry.summary}</Paragraph>
+              <Title>Öneri</Title>
+              <Paragraph>{dailyEntry.suggestion}</Paragraph>
+              <Title style={{ color: dailyEntry.color }}>
+                {dailyEntry.sentiment}
+              </Title>
+            </Card.Content>
+          </Card>
         </View>
       )}
     </ScrollView>
@@ -119,6 +146,29 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 10,
     borderLeftWidth: 6,
+  },
+  cardTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    textAlign: 'start',
+  },
+  messageText: {
+    fontWeight: 'normal',
+    fontSize: 12,
+    marginBottom: 5,
+    marginLeft: 8,
+  },
+  sentimentText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  weaklySummaryButtonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 20,
   },
 });
 

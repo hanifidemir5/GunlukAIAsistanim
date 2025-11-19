@@ -9,6 +9,7 @@ import { removeSentiment } from '../redux/SentimentSlice';
 const WeeklySummary = () => {
   const [entries, setEntries] = useState([]);
   const dispatch = useDispatch();
+  const latestEntry = useSelector(state => state.sentiments.latestEntry);
 
   useFocusEffect(
     useCallback(() => {
@@ -53,7 +54,12 @@ const WeeklySummary = () => {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView
+      contentContainerStyle={[
+        styles.container,
+        { backgroundColor: latestEntry?.color || '#f5f5f5' },
+      ]}
+    >
       <Text style={styles.title}>Haftalık Özet</Text>
 
       {entries.length === 0 && (

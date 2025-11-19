@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const initialState = {
   entries: [],
+  latestEntry: '',
 };
 
 const SentimentsSlice = createSlice({
@@ -12,6 +13,7 @@ const SentimentsSlice = createSlice({
   reducers: {
     setSentiments(state, action) {
       state.entries = action.payload;
+      state.latestEntry = action.payload[0];
     },
     addSentiment(state, action) {
       state.entries.push(action.payload);
